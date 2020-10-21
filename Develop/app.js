@@ -1,5 +1,3 @@
-
-const util = require("util");
 const Manager = require("./lib/Manager");
 const Engineer = require("./lib/Engineer");
 const Intern = require("./lib/Intern");
@@ -11,75 +9,98 @@ const OUTPUT_DIR = path.resolve(__dirname, "output");
 const outputPath = path.join(OUTPUT_DIR, "team.html");
 
 const render = require("./lib/htmlRenderer");
-const writeFileAsync = util.promisify(fs.writeFile);
 
-function promptUser({
-    return inquirer.prompt()
-        {
-        type: "input",
-            name: "name",
+const devTeam = [];
+
+
+const renderTeam = () => {
+    return inquirer
+        .prompt([
+            {
+                type: "list",
+                name: "role",
+                message: "What is your role?",
+                choices: () => {
+                    return ["Manager", "Engineer", "Intern"];
+                }
+            },
+            {
+                type: "input",
+                name: "name",
                 message: "What is your name?"
+            },
+            {
+                type: "input",
+                name: "id",
+                message: "What is your ID?"
+            },
+            {
+                type: "input",
+                name: "email",
+                message: "What is your email?"
+            },
+            {
+                when: data => data.role === "Manager",
+                type: "input",
+                name: "officeNumber",
+                message: "What is your office number?"
+            },
+            {
+                when: data => data.role === "Engineer",
+                type: "input",
+                name: "github",
+                message: "What is your github username?"
+            },
+            {
+                when: data => data.role === "Intern",
+                type: "input",
+                name: "school",
+                message: "Where do you attend to school?"
+            }
+        ]).then(data => {
+            if (data.role === "Manager") {
+                devTeam.push(new Manager(data.role, data.name, data.id, data.email, data.officeNumber));
+            }
+            else if (data.role === "Engineer") {
+                devTeam.push(new Engineer(data.role, data.name, data.id, data.email, data.github));
+            }
+            else if (data.role === "Intern") {
+                devTeam.push(new Intern(data.role, data.name, data.id, data.email, data.school));
+            }
+            console.log(devTeam);
+            newMember();
+        }).catch(err => {
+            console.log(err);
+        });
+};
 
-    },
-    {
-        type: "input",
-        name: "id",
-        message: "What is your ID number?"
-    },
-    {
-        type: "checkbox",
-        name: "position",
-        message: "What is your poision to this company?",
-        choices: ["Emploee", "Manager", "Engineer1", "Engineer2", "Intern"],
-    },
-    {
-        type: "input",
-        name: "username",
-        message: "What is your GitHub name?",
-    },
-    {
-        type: "input",
-        name: "school",
-        message: "What is your school number?",
-    },
-    {
-        type: "input",
-        name: "office",
-        message: "What is your office number?",
-    },
-    });
+const newMember = () => {
+    return inquirer
+        .prompt([
+            {
+                type: "list",
+                name: "newMember",
+                message: "Do you want to add another employee?",
+                choices: ["yes", "no"]
+            }
+        ]).then(data => {
+            if (data.newMember === "yes") {
+                renderTeam();
+            }
+            else {
+                writeToFile();
+            }
+        });
+};
 
-async function init() {
-    try {
-        const response = await promptUser();
-        const html = ques.htmlRenderer(response);
-        await writeFileAsync("test.html", html);
-        console.log("Success!");
-    } catch (err) {
-        console.log(err);
+const writeToFile = () => {
+    if (!fs.existsSync("./output")) {
+        fs.mkdirSync("./output");
     }
-}
-init();
+    fs.writeFile(outputPath, render(devTeam), err => {
+        if (err) throw err;
+        console.log("Completed!");
+    });
+};
 
-// Write code to use inquirer to gather information about the development team members,
-// and to create objects for each team member (using the correct classes as blueprints!)
-
-// After the user has input all employees desired, call the `render` function (required
-// above) and pass in an array containing all employee objects; the `render` function will
-// generate and return a block of HTML including templated divs for each employee!
-
-// After you have your html, you're now ready to create an HTML file using the HTML
-// returned from the `render` function. Now write it to a file named `team.html` in the
-// `output` folder. You can use the variable `outputPath` above target this location.
-// Hint: you may need to check if the `output` folder exists and create it if it
-// does not.
-
-// HINT: each employee type (manager, engineer, or intern) has slightly different
-// information; write your code to ask different questions via inquirer depending on
-// employee type.
-
-// HINT: make sure to build out your classes first! Remember that your Manager, Engineer,
-// and Intern classes should all extend from a class named Employee; see the directions
-// for further information. Be sure to test out each class and verify it generates an
-// object with the correct structure and methods. This structure will be crucial in order
-// for the provided `render` function to work! ```
+renderTeam();
